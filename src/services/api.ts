@@ -81,4 +81,14 @@ export const SettingsService = {
   changePassword: (data: any) => api.put('/settings/security/password', data),
 };
 
+export const RatingService = {
+  submit: (data: { proposalId: number; stars: number; comment: string }) => api.post('/ratings', data),
+};
+
+export const RankingService = {
+  getAll: () => api.get('/rankings'),
+  getBySkill: (skillId: string) => api.get('/rankings', { params: { skillId } }),
+  getSkills: () => api.get('/skills'),
+};
+
 export default api;
