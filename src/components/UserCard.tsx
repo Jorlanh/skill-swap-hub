@@ -1,6 +1,7 @@
 import type { User } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 interface UserCardProps {
   user: User;
@@ -19,9 +20,9 @@ const UserCard = ({ user, onClick }: UserCardProps) => {
           <AvatarFallback>{user.username[0]}</AvatarFallback>
         </Avatar>
         <div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <h3 className="font-display font-bold text-foreground">{user.username}</h3>
-            {user.isVerified && <Star className="h-4 w-4 text-skillswap-gold fill-skillswap-gold" />}
+            {user.isVerified && <VerifiedBadge size={16} />}
           </div>
           {user.helpedCount !== undefined && (
             <p className="text-sm text-muted-foreground">

@@ -1,11 +1,13 @@
 import { NavLink } from '@/components/NavLink';
 import {
-  User, MessageSquare, FileText, Settings, Sun, BookOpen, DollarSign, Home, Users, Menu, X
+  User, MessageSquare, FileText, Settings, Sun, BookOpen, DollarSign, Home, Users, Menu, X, Trophy
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 
 const sidebarLinks = [
+  { to: '/', label: 'Início', icon: Home },
+  { to: '/rankings', label: 'Rankings', icon: Trophy },
   { to: '/perfil', label: 'Perfil', icon: User },
   { to: '/mensagens', label: 'Mensagens', icon: MessageSquare },
   { to: '/propostas', label: 'Propostas', icon: FileText },
@@ -39,20 +41,19 @@ const AppSidebar = () => {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - hidden on mobile, visible on desktop */}
       <aside className={`
-        fixed lg:sticky top-0 left-0 z-40 h-screen w-52 pt-20 lg:pt-6 px-2 
-        bg-card border-r border-border transition-transform duration-200
-        ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        hidden lg:block sticky top-0 left-0 z-40 h-screen w-52 pt-6 px-2 
+        bg-card border-r border-border
       `}>
         <nav className="flex flex-col gap-1">
           {sidebarLinks.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
+              end={to === '/'}
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors"
               activeClassName="bg-muted text-foreground font-medium"
-              onClick={() => setMobileOpen(false)}
             >
               <Icon className="h-5 w-5" />
               <span>{label}</span>

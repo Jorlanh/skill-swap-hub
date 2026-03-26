@@ -15,6 +15,7 @@ import ProposalsPage from "@/pages/ProposalsPage";
 import PreferencesPage from "@/pages/PreferencesPage";
 import SettingsPage from "@/pages/SettingsPage";
 import CoursesPage from "@/pages/CoursesPage";
+import RankingsPage from "@/pages/RankingsPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/preferencias" element={<PreferencesPage />} />
             <Route path="/configuracoes" element={<SettingsPage />} />
             <Route path="/cursos" element={<CoursesPage />} />
+            <Route path="/rankings" element={<RankingsPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
