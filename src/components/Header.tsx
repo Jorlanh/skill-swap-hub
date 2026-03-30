@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, Home, Bell, LogIn } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -8,6 +8,7 @@ import { UserService } from '@/services/api';
 const Header = () => {
   const [user, setUser] = useState<any>(null);
   const token = localStorage.getItem('token');
+  const navigate = useNavigate(); // Injeção do navegador interno
 
   useEffect(() => {
     // Protocolo de recuperação de identidade
@@ -23,15 +24,9 @@ const Header = () => {
   }, [token]);
 
   const handleLogin = () => {
-    // CORREÇÃO TÁTICA: 
-    // Em vez de ir direto para o domínio do Auth0, enviamos para o Spring Boot (8080).
-    // O Spring iniciará o fluxo OAuth2 com as credenciais seguras que configuramos no properties.
-    const authUrl = import.meta.env.VITE_AUTH_URL;
-    if (authUrl) {
-      window.location.href = authUrl;
-    } else {
-      console.error("Erro: VITE_AUTH_URL não definida no .env");
-    }
+    // REDIRECIONAMENTO TÁTICO:
+    // Apenas envia o usuário para a nossa nova tela de Login/Cadastro interna.
+    navigate('/login');
   };
 
   const handleLogout = () => {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NotificationService, ProposalService } from '@/services/api';
+import { NotificationService, ProposalService, CommunityService } from '@/services/api'; // CommunityService IMPORTADO
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,14 +13,16 @@ import {
   ChevronRight, 
   MessageSquare, 
   Clock, 
-  Handshake // Adicionado e corrigido para PascalCase
+  Handshake 
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
+import { Link } from 'react-router-dom'; // IMPORTADO para navegar ao clicar na comunidade
 
 const ActivitiesPage = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [proposals, setProposals] = useState<any[]>([]);
+  const [viralCommunities, setViralCommunities] = useState<any[]>([]); // ESTADO PARA COMUNIDADES
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -31,12 +33,22 @@ const ActivitiesPage = () => {
   const loadActivities = async () => {
     setIsLoading(true);
     try {
-      const [notifRes, propRes] = await Promise.all([
+      // INCREMENTO: Buscando Comunidades em paralelo com Propostas e Notificações
+      const [notifRes, propRes, commRes] = await Promise.all([
         NotificationService.getAll(),
-        ProposalService.getAll()
+        ProposalService.getAll(),
+        CommunityService.getAll().catch(() => ({ data: [] })) // Fallback silencioso se falhar
       ]);
-      setNotifications(notifRes.data);
-      setProposals(propRes.data);
+      
+      setNotifications(notifRes.data || []);
+      setProposals(propRes.data || []);
+      
+      // Pega as 3 principais comunidades para a Sidebar (Você pode ajustar a lógica de ordenação se houver um campo de 'score')
+      const topCommunities = Array.isArray(commRes.data) 
+        ? commRes.data.slice(0, 3) 
+        : [];
+      setViralCommunities(topCommunities);
+      
     } catch (error) {
       console.error("Falha na telemetria de atividades:", error);
     } finally {
@@ -150,17 +162,38 @@ const ActivitiesPage = () => {
             <Flame className="h-5 w-5 text-orange-500 fill-orange-500" /> Comunidades virais
           </h3>
           <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="group flex items-center justify-between p-3 rounded-xl hover:bg-muted transition-colors cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-skillswap-teal/10 flex items-center justify-center font-bold text-skillswap-teal">
-                    #{i}
+            {isLoading ? (
+              // Skeleton Loading para a Sidebar
+              [1, 2, 3].map((i) => (
+                 <div key={i} className="flex items-center gap-3 p-2">
+                    <Skeleton className="w-10 h-10 rounded-lg" />
+                    <Skeleton className="h-4 w-32" />
+                 </div>
+              ))
+            ) : viralCommunities.length > 0 ? (
+              // Renderizando as Comunidades Reais do Backend
+              viralCommunities.map((community, index) => (
+                <Link 
+                  key={community.id || index} 
+                  to="/comunidades" // Roteamento padrão (ajuste se tiver Rota específica da comunidade)
+                  className="group flex items-center justify-between p-3 rounded-xl hover:bg-muted transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-skillswap-teal/10 flex items-center justify-center font-bold text-skillswap-teal shrink-0">
+                      #{index + 1}
+                    </div>
+                    <span className="text-sm font-bold truncate max-w-[120px]" title={community.name}>
+                      {community.name || "Comunidade"}
+                    </span>
                   </div>
-                  <span className="text-sm font-bold">Comunidade {i}</span>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-              </div>
-            ))}
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform shrink-0" />
+                </Link>
+              ))
+            ) : (
+               <div className="text-sm text-muted-foreground text-center py-4">
+                  Nenhuma comunidade encontrada.
+               </div>
+            )}
           </div>
         </div>
       </aside>

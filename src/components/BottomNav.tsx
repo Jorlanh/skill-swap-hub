@@ -1,15 +1,27 @@
 import { NavLink } from '@/components/NavLink';
-import { Home, Search, MessageSquare, User, Trophy } from 'lucide-react';
+import { Home, Search, MessageSquare, User, Trophy, LogIn } from 'lucide-react';
 
-const navItems = [
-  { to: '/', label: 'Início', icon: Home },
-  { to: '/busca', label: 'Busca', icon: Search },
-  { to: '/rankings', label: 'Rankings', icon: Trophy },
-  { to: '/mensagens', label: 'Chat', icon: MessageSquare },
-  { to: '/perfil', label: 'Perfil', icon: User },
-];
+interface BottomNavProps {
+  isAuthenticated: boolean;
+}
 
-const BottomNav = () => {
+const BottomNav = ({ isAuthenticated }: BottomNavProps) => {
+  const navItems = [
+    { to: '/', label: 'Início', icon: Home },
+    { to: '/busca', label: 'Busca', icon: Search },
+    { to: '/rankings', label: 'Rankings', icon: Trophy },
+    // Só mostra Chat e Perfil se logado, caso contrário mostra Login
+    ...(isAuthenticated 
+      ? [
+          { to: '/mensagens', label: 'Chat', icon: MessageSquare },
+          { to: '/perfil', label: 'Perfil', icon: User }
+        ]
+      : [
+          { to: '/login', label: 'Entrar', icon: LogIn }
+        ]
+    )
+  ];
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border lg:hidden safe-area-bottom">
       <div className="flex items-center justify-around h-14">

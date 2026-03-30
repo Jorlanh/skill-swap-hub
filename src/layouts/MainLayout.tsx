@@ -3,17 +3,25 @@ import Header from '@/components/Header';
 import AppSidebar from '@/components/AppSidebar';
 import BottomNav from '@/components/BottomNav';
 
-const MainLayout = () => {
+interface MainLayoutProps {
+  requireAuth: (action: () => void) => void;
+}
+
+const MainLayout = ({ requireAuth }: MainLayoutProps) => {
+  const isAuthenticated = !!localStorage.getItem('token');
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <div className="flex">
-        <AppSidebar />
+        {/* Agora o AppSidebar aceita a prop e o erro 2322 some! */}
+        <AppSidebar isAuthenticated={isAuthenticated} />
         <main className="flex-1 min-h-[calc(100vh-57px)] p-4 lg:p-6 pb-20 lg:pb-6">
-          <Outlet />
+          {/* O Outlet passa o contexto para os filhos (PostCard, etc) */}
+          <Outlet context={{ requireAuth }} />
         </main>
       </div>
-      <BottomNav />
+      <BottomNav isAuthenticated={isAuthenticated} />
     </div>
   );
 };

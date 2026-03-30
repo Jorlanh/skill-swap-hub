@@ -5,25 +5,31 @@ import {
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 
+interface AppSidebarProps {
+  isAuthenticated: boolean;
+}
+
 const sidebarLinks = [
-  { to: '/', label: 'Início', icon: Home },
-  { to: '/rankings', label: 'Rankings', icon: Trophy },
-  { to: '/perfil', label: 'Perfil', icon: User },
-  { to: '/mensagens', label: 'Mensagens', icon: MessageSquare },
-  { to: '/propostas', label: 'Propostas', icon: FileText },
-  { to: '/comunidades', label: 'Comunidades', icon: Users },
-  { to: '/configuracoes', label: 'Configurações', icon: Settings },
-  { to: '/preferencias', label: 'Preferências', icon: Sun },
-  { to: '/cursos', label: 'Meus cursos', icon: BookOpen },
-  { to: '/financeiro', label: 'Financeiro', icon: DollarSign },
+  { to: '/', label: 'Início', icon: Home, public: true },
+  { to: '/rankings', label: 'Rankings', icon: Trophy, public: true },
+  { to: '/perfil', label: 'Perfil', icon: User, public: false },
+  { to: '/mensagens', label: 'Mensagens', icon: MessageSquare, public: false },
+  { to: '/propostas', label: 'Propostas', icon: FileText, public: false },
+  { to: '/comunidades', label: 'Comunidades', icon: Users, public: true },
+  { to: '/configuracoes', label: 'Configurações', icon: Settings, public: false },
+  { to: '/preferencias', label: 'Preferências', icon: Sun, public: false },
+  { to: '/cursos', label: 'Meus cursos', icon: BookOpen, public: false },
+  { to: '/financeiro', label: 'Financeiro', icon: DollarSign, public: false },
 ];
 
-const AppSidebar = () => {
+const AppSidebar = ({ isAuthenticated }: AppSidebarProps) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Filtra os links com base na autenticação
+  const visibleLinks = sidebarLinks.filter(link => link.public || isAuthenticated);
 
   return (
     <>
-      {/* Mobile toggle */}
       <Button
         variant="ghost"
         size="icon"
@@ -33,7 +39,6 @@ const AppSidebar = () => {
         {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </Button>
 
-      {/* Overlay */}
       {mobileOpen && (
         <div
           className="fixed inset-0 bg-foreground/20 z-30 lg:hidden"
@@ -41,13 +46,9 @@ const AppSidebar = () => {
         />
       )}
 
-      {/* Sidebar - hidden on mobile, visible on desktop */}
-      <aside className={`
-        hidden lg:block sticky top-0 left-0 z-40 h-screen w-52 pt-6 px-2 
-        bg-card border-r border-border
-      `}>
+      <aside className="hidden lg:block sticky top-0 left-0 z-40 h-screen w-52 pt-6 px-2 bg-card border-r border-border">
         <nav className="flex flex-col gap-1">
-          {sidebarLinks.map(({ to, label, icon: Icon }) => (
+          {visibleLinks.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}

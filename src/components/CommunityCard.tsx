@@ -1,6 +1,7 @@
 import type { Community } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { useOutletContext } from 'react-router-dom';
 
 interface CommunityCardProps {
   community: Community;
@@ -8,6 +9,21 @@ interface CommunityCardProps {
 }
 
 const CommunityCard = ({ community, onJoin }: CommunityCardProps) => {
+  // ACESSO À BARREIRA GLOBAL
+  const context = useOutletContext<{ requireAuth?: (action: () => void) => void }>();
+
+  const handleJoinClick = () => {
+    // Se o contexto existir (veio via MainLayout), aplica a barreira
+    if (context?.requireAuth) {
+      context.requireAuth(() => {
+        if (onJoin) onJoin();
+      });
+    } else {
+      // Fallback caso seja usado fora do layout com barreira
+      if (onJoin) onJoin();
+    }
+  };
+
   return (
     <div className="bg-skillswap-light-blue rounded-xl p-5 flex flex-col items-center text-center">
       <h3 className="font-display font-bold text-foreground mb-3">{community.name}</h3>
@@ -26,7 +42,7 @@ const CommunityCard = ({ community, onJoin }: CommunityCardProps) => {
         variant="outline"
         size="sm"
         className="bg-skillswap-light-blue border-foreground/20 text-foreground hover:bg-accent"
-        onClick={onJoin}
+        onClick={handleJoinClick}
       >
         Entrar
       </Button>

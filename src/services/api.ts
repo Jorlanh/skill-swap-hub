@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-export const BASE_URL = 'http://localhost:8080/api';
+// Utiliza a variável do .env com fallback para localhost caso falhe
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -50,9 +51,14 @@ export const HomeService = {
 
 export const PostService = {
   getAll: () => api.get('/posts'),
-  getById: (id: string) => api.get(`/posts/${id}`),
-  create: (data: FormData) => api.post('/posts', data),
-  like: (id: string) => api.post(`/posts/${id}/like`),
+  getById: (id: string | number) => api.get(`/posts/${id}`),
+  create: (formData: FormData) => api.post('/posts', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  like: (id: string | number) => api.post(`/posts/${id}/like`),
+  comment: (id: string | number, content: string) => api.post(`/posts/${id}/comment`, { content }),
+  repost: (id: string | number) => api.post(`/posts/${id}/repost`),
+  delete: (id: string | number) => api.delete(`/posts/${id}`),
 };
 
 // ==========================================
@@ -65,20 +71,46 @@ export const SearchService = {
 
 export const CommunityService = {
   getAll: () => api.get('/communities'),
-  join: (id: string) => api.post(`/communities/${id}/join`),
+  join: (id: string | number) => api.post(`/communities/${id}/join`),
 };
 
 // ==========================================
 // USUÁRIO & PERFIL
 // ==========================================
 export const ProfileService = {
-  get: (handle: string) => api.get(`/profile/${handle}`),
-  update: (data: any) => api.put('/profile', data),
+  get: (handle: string) => api.get(`/profiles/user/${handle}`),
+  update: (data: any) => api.put('/profiles/me', data),
 };
 
 export const UserService = {
   getById: (id: string) => api.get(`/users/${id}`),
-  getMe: () => api.get('/users/me'), 
+  getMe: () => api.get('/users/me'),
+  getByUsername: (username: string) => api.get(`/users/${username}`),
+  
+  // Sincronização de Notificações
+  updateFcmToken: (token: string) => 
+    api.patch('/users/update-fcm-token', token, {
+      headers: { 'Content-Type': 'text/plain' }
+    }),
+
+  // EDIÇÃO DE PERFIL (Conexão real com Java @PutMapping("/me"))
+  updateProfile: (profileData: any) => api.put('/profiles/me', profileData),
+  
+  updateAvatar: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/profiles/me/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  
+  // CORREÇÃO: Envio como RequestParam para o Java @PatchMapping("/me/privacy")
+  togglePrivacy: (isPrivate: boolean) => 
+    api.patch('/profiles/me/privacy', null, { params: { isPrivate } }),
+
+  // SEGUIDORES (Conexão real com ProfileController)
+  followUser: (targetUserId: string | number) => api.post(`/profiles/me/follow/${targetUserId}`),
+  unfollowUser: (targetUserId: string | number) => api.post(`/profiles/me/unfollow/${targetUserId}`),
 };
 
 // ==========================================
@@ -86,9 +118,30 @@ export const UserService = {
 // ==========================================
 export const ChatService = {
   getConversations: () => api.get('/chat/conversations'),
-  getMessages: (conversationId: string) => api.get(`/chat/${conversationId}/messages`),
-  sendMessage: (conversationId: string, content: string) => 
-    api.post(`/chat/${conversationId}/messages`, { content }),
+  getHistory: (userId1: string, userId2: string) => api.get(`/chat/history/${userId1}/${userId2}`),
+  sendMessage: (payload: any) => api.post('/chat/send', payload),
+  sendVoiceMessage: (formData: FormData) => api.post('/chat/send-voice', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  uploadAttachment: (formData: FormData) => api.post('/chat/upload-file', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+};
+
+// ==========================================
+// CURSOS & AGENDAMENTOS (LESSONS)
+// ==========================================
+export const LessonService = {
+  schedule: (data: any) => api.post('/lesson/schedule', data),
+  getUpcoming: (userId: string) => api.get(`/lesson/upcoming/${userId}`),
+  notify: (lessonId: number) => api.post(`/lesson/notify/${lessonId}`),
+};
+
+// ==========================================
+// VÍDEO CHAMADA (LiveKit)
+// ==========================================
+export const VideoService = {
+  getJoinToken: (roomName: string) => api.post('/video/join-room', { roomName }),
 };
 
 // ==========================================
@@ -131,7 +184,7 @@ export const SettingsService = {
 // GAMIFICAÇÃO & RANKINGS
 // ==========================================
 export const RatingService = {
-  submit: (data: { proposalId: number; stars: number; comment: string }) => 
+  submit: (data: { proposalId: number | string; stars: number; comment: string }) => 
     api.post('/ratings', data),
 };
 
@@ -146,7 +199,16 @@ export const RankingService = {
 // ==========================================
 export const AchievementService = {
   getAll: () => api.get('/achievements'),
-  getUserAchievements: (userId: number) => api.get(`/achievements/user/${userId}`),
+  getUserAchievements: (userId: string | number) => api.get(`/achievements/user/${userId}`),
+  generateImage: (data: any) => api.post('/achievements/generate-image', data),
+};
+
+// ==========================================
+// SEGURANÇA & DENÚNCIAS (REPORTS)
+// ==========================================
+export const ReportService = {
+  create: (data: { targetId: string; targetType: string; reason: string; description: string }) => 
+    api.post('/reports', data),
 };
 
 export default api;
