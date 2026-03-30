@@ -17,6 +17,9 @@ import SettingsPage from "@/pages/SettingsPage";
 import CoursesPage from "@/pages/CoursesPage";
 import RankingsPage from "@/pages/RankingsPage";
 import NotFound from "./pages/NotFound.tsx";
+import AdminConsole from "@/pages/AdminConsole";
+import OAuth2RedirectHandler from "@/components/auth/OAuth2RedirectHandler"; // IMPORTADO
+import { ChatbotELOS } from "@/components/ChatbotELOS"; 
 
 const queryClient = new QueryClient();
 
@@ -29,6 +32,9 @@ const App = () => (
         <Routes>
           <Route element={<MainLayout />}>
             <Route path="/" element={<FeedPage />} />
+            {/* ROTA DE CALLBACK OAUTH2 */}
+            <Route path="/oauth2/callback" element={<OAuth2RedirectHandler />} />
+            
             <Route path="/mensagens" element={<ChatPage />} />
             <Route path="/perfil" element={<ProfilePage />} />
             <Route path="/busca" element={<SearchPage />} />
@@ -40,9 +46,11 @@ const App = () => (
             <Route path="/configuracoes" element={<SettingsPage />} />
             <Route path="/cursos" element={<CoursesPage />} />
             <Route path="/rankings" element={<RankingsPage />} />
+            <Route path="/uniaosinistrabahvas" element={<AdminConsole />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <ChatbotELOS /> 
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

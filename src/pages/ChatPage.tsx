@@ -1,113 +1,148 @@
-import { useState } from 'react';
-import { mockConversations, mockChatMessages, mockUsers } from '@/data/mockData';
+import { useEffect, useState, useRef } from 'react';
+import { ChatService, BASE_URL } from '@/services/api';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Video, Info, Camera, Mic, Send, Plus, Star } from 'lucide-react';
+import { ChevronLeft, Send, Plus, Video, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const ChatPage = () => {
-  const [selectedConvo, setSelectedConvo] = useState(mockConversations[0]);
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [selectedConvo, setSelectedConvo] = useState<any>(null);
+  const [messages, setMessages] = useState<any[]>([]);
   const [message, setMessage] = useState('');
+  const socket = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    // 1. Carrega conversas com tratamento de erro
+    ChatService.getConversations()
+      .then(res => {
+        const data = Array.isArray(res.data) ? res.data : [];
+        setConversations(data);
+        if (data.length > 0) setSelectedConvo(data[0]);
+      })
+      .catch(() => setConversations([]));
+
+    // 2. Conexão WebSocket Segura
+    const token = localStorage.getItem('token');
+    if (token && token !== "null") {
+      const wsUrl = BASE_URL.replace('http', 'ws').replace('/api', '/chat');
+      socket.current = new WebSocket(`${wsUrl}?token=${token}`);
+
+      socket.current.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          setMessages(prev => [...prev, msg]);
+        } catch (e) {
+          console.error("Erro ao decodificar mensagem recebida.");
+        }
+      };
+
+      socket.current.onerror = () => console.error("Falha na conexão com o servidor de chat.");
+    }
+
+    return () => socket.current?.close();
+  }, []);
+
+  const handleSendMessage = () => {
+    if (!message.trim() || !socket.current || socket.current.readyState !== WebSocket.OPEN) return;
+    
+    const payload = { 
+      content: message, 
+      conversationId: selectedConvo?.id,
+      timestamp: new Date()
+    };
+    
+    socket.current.send(JSON.stringify(payload));
+    setMessages(prev => [...prev, { ...payload, isOwn: true }]);
+    setMessage('');
+  };
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <Link to="/" className="inline-flex items-center gap-1 text-foreground font-semibold mb-4 hover:opacity-80">
-        <ChevronLeft className="h-5 w-5" /> Voltar
+    <div className="max-w-6xl mx-auto p-4">
+      <Link to="/" className="inline-flex items-center gap-2 text-foreground font-bold mb-4 hover:text-skillswap-teal transition-colors">
+        <ChevronLeft size={20} /> Voltar para o Feed
       </Link>
 
-      <div className="flex gap-4 h-[calc(100vh-180px)]">
-        {/* Conversations list */}
-        <div className="w-72 shrink-0">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-2xl">💬</span>
-            <h2 className="font-display font-bold text-xl text-foreground">Conversas</h2>
+      <div className="flex gap-4 h-[calc(100vh-180px)] bg-card border border-border rounded-3xl overflow-hidden shadow-2xl">
+        {/* Listagem lateral */}
+        <div className="w-80 border-r border-border bg-muted/10 flex flex-col">
+          <div className="p-6 border-b border-border bg-background/50">
+            <h2 className="font-display font-bold text-xl flex items-center gap-2">💬 Conversas</h2>
           </div>
-          <div className="space-y-1">
-            {mockConversations.map((convo) => (
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {conversations.map((convo) => (
               <div
-                key={convo.id}
-                className={`p-3 rounded-xl cursor-pointer transition-colors ${
-                  selectedConvo.id === convo.id
-                    ? 'bg-skillswap-light-blue'
-                    : 'hover:bg-muted'
-                }`}
+                key={convo?.id}
                 onClick={() => setSelectedConvo(convo)}
+                className={`p-4 rounded-2xl cursor-pointer transition-all ${
+                  selectedConvo?.id === convo?.id ? 'bg-skillswap-teal text-white shadow-lg' : 'hover:bg-muted'
+                }`}
               >
                 <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={convo.user.avatar} />
-                    <AvatarFallback>{convo.user.username[0]}</AvatarFallback>
+                  <Avatar className="h-10 w-10 border-2 border-background">
+                    <AvatarImage src={convo?.user?.avatarUrl} />
+                    <AvatarFallback>{convo?.user?.username?.[0] || '?'}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1">
-                      <span className="text-sm font-semibold text-foreground">{convo.user.username}</span>
-                      {convo.user.isVerified && <Star className="h-3 w-3 text-skillswap-gold fill-skillswap-gold" />}
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {convo.isRead && '✓✓ '}{convo.lastMessage}
+                    <p className="text-sm font-bold truncate">{convo?.user?.username || "Desconhecido"}</p>
+                    <p className={`text-xs truncate ${selectedConvo?.id === convo?.id ? 'text-teal-50' : 'text-muted-foreground'}`}>
+                      {convo?.lastMessage || "Sem mensagens"}
                     </p>
                   </div>
                 </div>
-                <div className="border-b border-border mt-3" />
               </div>
             ))}
           </div>
         </div>
 
-        {/* Chat area */}
-        <div className="flex-1 bg-skillswap-card-bg rounded-2xl flex flex-col">
-          {/* Chat header */}
-          <div className="flex items-center justify-between p-4 border-b border-border">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={selectedConvo.user.avatar} />
-                <AvatarFallback>{selectedConvo.user.username[0]}</AvatarFallback>
-              </Avatar>
-              <div className="flex items-center gap-1">
-                <span className="font-display font-bold text-lg text-foreground">{selectedConvo.user.username}</span>
-                {selectedConvo.user.isVerified && <Star className="h-5 w-5 text-skillswap-gold fill-skillswap-gold" />}
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon"><Video className="h-5 w-5" /></Button>
-              <Button variant="ghost" size="icon"><Info className="h-5 w-5" /></Button>
-            </div>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3">
-            <div className="text-center">
-              <span className="text-xs bg-skillswap-light-blue text-foreground px-3 py-1 rounded-full">07 de Abril</span>
-            </div>
-            {mockChatMessages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-xs px-4 py-2 rounded-2xl text-sm ${
-                  msg.isOwn
-                    ? 'bg-skillswap-light-blue text-foreground'
-                    : 'bg-card text-foreground border border-border'
-                }`}>
-                  {msg.content}
+        {/* Área de Chat Principal */}
+        <div className="flex-1 flex flex-col bg-background/30">
+          {selectedConvo ? (
+            <>
+              <div className="p-4 border-b border-border flex items-center justify-between bg-background/80 backdrop-blur-md">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10"><AvatarImage src={selectedConvo?.user?.avatarUrl} /></Avatar>
+                  <span className="font-bold">{selectedConvo?.user?.username}</span>
+                </div>
+                <div className="flex gap-1">
+                   <Button variant="ghost" size="icon"><Video size={20}/></Button>
+                   <Button variant="ghost" size="icon"><Info size={20}/></Button>
                 </div>
               </div>
-            ))}
-          </div>
 
-          {/* Input */}
-          <div className="p-4 flex items-center gap-3">
-            <Button variant="ghost" size="icon"><Plus className="h-5 w-5" /></Button>
-            <Input
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Digite aqui.."
-              className="flex-1 bg-muted rounded-full"
-            />
-            <Button variant="ghost" size="icon"><Camera className="h-5 w-5" /></Button>
-            <Button variant="ghost" size="icon"><Mic className="h-5 w-5" /></Button>
-            <Button size="icon" className="bg-skillswap-teal text-primary-foreground rounded-full hover:opacity-90">
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {messages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg?.isOwn ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm shadow-sm ${
+                      msg?.isOwn ? 'bg-skillswap-teal text-white rounded-tr-none' : 'bg-card border border-border rounded-tl-none'
+                    }`}>
+                      {msg?.content}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-4 bg-background border-t border-border flex items-center gap-3">
+                <Button variant="ghost" size="icon" className="rounded-full"><Plus /></Button>
+                <Input
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                  placeholder="Envie uma proposta ou dúvida..."
+                  className="flex-1 bg-muted/50 rounded-full border-none focus-visible:ring-skillswap-teal"
+                />
+                <Button onClick={handleSendMessage} className="bg-skillswap-teal hover:bg-teal-700 rounded-full w-12 h-12">
+                  <Send size={18} />
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-muted-foreground flex-col gap-4">
+              <span className="text-6xl">✨</span>
+              <p className="font-bold">Selecione uma conversa para começar a trocar.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
